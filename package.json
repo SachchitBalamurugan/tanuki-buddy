@@ -1,0 +1,66 @@
+{
+  "name": "tanuki-buddy",
+  "version": "1.0.0",
+  "description": "A cozy forest tanuki that shows when Claude Code / Codex need you",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "install-hooks": "node scripts/install-hooks.mjs",
+    "uninstall-hooks": "node scripts/install-hooks.mjs --uninstall",
+    "test": "node scripts/test-states.mjs",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "author": "SachchitBalamurugan",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "gsap": "3.13.0",
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "electron": "45.3.1",
+    "electron-builder": "^26.18.0"
+  },
+  "private": true,
+  "homepage": "https://github.com/SachchitBalamurugan/tanuki-buddy",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SachchitBalamurugan/tanuki-buddy.git"
+  },
+  "build": {
+    "appId": "com.tanuki.buddy",
+    "productName": "Tanuki Buddy",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "hooks/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "hooks/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tanuki Buddy",
+      "artifactName": "Tanuki-Buddy-Setup-${version}.exe"
+    },
+    "publish": null
+  }
+}

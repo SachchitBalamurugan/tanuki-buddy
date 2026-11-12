@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:" />
+  <title>Tanuki Buddy</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../../node_modules/three/build/three.module.js",
+        "gsap": "../../node_modules/gsap/index.js"
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --paper: #fbf3df;
+      --ink: #3b2a20;
+      --green: #5da04f;
+      --yellow: #e8b530;
+      --red: #d65c4e;
+    }
+    html, body {
+      margin: 0; height: 100%; overflow: hidden;
+      background: transparent; user-select: none;
+      font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    }
+    #stage { width: 100%; height: 100%; display: block; }
+    body.hover { cursor: grab; }
+    body.hover:active { cursor: grabbing; }
+    #bubble {
+      position: absolute; left: 6px; top: 6px; max-width: 74%;
+      padding: 6px 9px; border-radius: 12px;
+      background: var(--paper); color: var(--ink);
+      border: 2.5px solid var(--ink); box-shadow: 3px 3px 0 rgba(59, 42, 32, 0.25);
+      font-size: 10.5px; line-height: 1.4;
+      opacity: 0; transform: translateY(4px) scale(0.97); transform-origin: bottom left;
+      transition: opacity 0.18s ease, transform 0.18s ease; pointer-events: none;
+    }
+    body.hover #bubble { opacity: 1; transform: none; }
+    #bubble .row { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #bubble i { opacity: 0.7; }
+    #bubble .more { opacity: 0.6; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; border: 1.5px solid var(--ink); vertical-align: -1px; }
+    .dot.working { background: var(--green); }
+    .dot.approval { background: var(--yellow); }
+    .dot.done { background: var(--red); }
+    @media (prefers-reduced-motion: reduce) { #bubble { transition: none; } }
+  </style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <div id="bubble"></div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
