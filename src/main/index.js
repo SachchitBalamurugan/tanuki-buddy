@@ -20,6 +20,12 @@ const NAME = { claude: "Claude", codex: "Codex" };
 
 const SNAPSHOT = process.argv.some((a) => a.startsWith("--snapshot=") || a.startsWith("--icon="));
 if (!SNAPSHOT && !app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
+// Launching the app again (e.g. from the Start Menu) brings the tanuki back to the front.
+app.on("second-instance", () => {
+  if (!win || win.isDestroyed()) return;
+  win.showInactive(); win.setAlwaysOnTop(true, "screen-saver"); win.moveTop();
+  refreshTray?.();
+});
 app.setAppUserModelId("com.tanuki.buddy");
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
@@ -55,10 +61,15 @@ function createWindow() {
     backgroundColor: "#00000000", title: "Tanuki Buddy",
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, backgroundThrottling: false },
   });
-  win.setAlwaysOnTop(true, "floating");
+  win.setAlwaysOnTop(true, "screen-saver");
   win.setIgnoreMouseEvents(true, { forward: true });
   win.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
-  win.once("ready-to-show", () => win.showInactive());
+  // Windows can drop WS_EX_TOPMOST when a hidden window is first shown, so re-assert it after showing
+  // and every few seconds (other apps going fullscreen/topmost can also push it down).
+  const pinOnTop = () => { if (win && !win.isDestroyed() && win.isVisible()) { win.setAlwaysOnTop(true, "screen-saver"); win.moveTop(); } };
+  win.once("ready-to-show", () => { win.showInactive(); pinOnTop(); });
+  win.on("show", pinOnTop);
+  setInterval(pinOnTop, 5000).unref?.();
   win.webContents.on("did-finish-load", () => sendStatus(false));
 }
 
