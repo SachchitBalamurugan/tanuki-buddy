@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { SessionStore } = require("./sessions");
 const { startServer } = require("./server");
+const { SessionScanner } = require("./scanner");
 const { trayIcon } = require("./icon");
 const hooks = require("./hooks-installer");
 
@@ -197,6 +198,7 @@ app.whenReady().then(() => {
     if (transition && prev && (snap.state === "approval" || snap.state === "done") && snap.primary) toast(snap);
   });
   if (!SNAPSHOT) startServer(store, Number(process.env.TANUKI_PORT || 47321));
+  if (!SNAPSHOT) new SessionScanner(store).start(); // also finds sessions by reading their transcripts
   if (!SNAPSHOT && !prefs.welcomed) {
     prefs.welcomed = true; savePrefs();
     if (!hooks.isInstalled() && Notification.isSupported()) {

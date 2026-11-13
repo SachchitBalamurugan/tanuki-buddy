@@ -13,6 +13,8 @@
 | 🔴 **完了 · all done** | a session finished its turn and is waiting for your next prompt | stretches with happy eyes, soft chime |
 | ⚪ **おやすみ · napping** | no activity for 30 minutes | dozes off with zzz |
 
+It finds sessions two ways: hooks (instant, and the only way to see permission prompts) plus a read-only scan of the session transcripts every 3 seconds (`~/.claude/projects`, and Codex's thread list in `~/.codex`), so it also picks up sessions started before you connected, the Codex app / IDE extension, and Codex sessions whose hooks you haven't trusted yet.
+
 If several sessions are open, the most urgent one wins (yellow > green > red), and the sign shows `+N`.
 Hover over the tanuki to see every session. Drag it anywhere, click it to poke it, and right-click for the menu.
 

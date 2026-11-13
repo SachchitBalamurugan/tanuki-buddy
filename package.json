@@ -1,6 +1,6 @@
 {
   "name": "tanuki-buddy",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A cozy forest tanuki that shows when Claude Code / Codex need you",
   "main": "src/main/index.js",
   "scripts": {

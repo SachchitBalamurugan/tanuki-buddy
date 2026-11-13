@@ -12,14 +12,15 @@ class SessionStore extends EventEmitter {
     super();
     this.sessions = new Map();
     this.lastState = null;
-    setInterval(() => this.emitIfChanged(), 30 * 1000).unref?.();
+    setInterval(() => this.emitIfChanged(), 15 * 1000).unref?.();
   }
 
-  update({ source, state, session_id, project }) {
+  /** `at` lets the transcript scanner pass the real time of the last activity. */
+  update({ source, state, session_id, project, at }) {
     const id = `${source}:${session_id}`;
     if (state === "end") this.sessions.delete(id);
-    else this.sessions.set(id, { id, source, state, project: project || "", updatedAt: Date.now() });
-    this.emitIfChanged(true);
+    else this.sessions.set(id, { id, source, state, project: project || this.sessions.get(id)?.project || "", updatedAt: Math.min(at ?? Date.now(), Date.now()) });
+    this.emitIfChanged();
   }
 
   effective(s, now) {
@@ -44,7 +45,7 @@ class SessionStore extends EventEmitter {
 
   emitIfChanged(force = false) {
     const snap = this.snapshot();
-    const key = JSON.stringify([snap.state, snap.sessions.map((s) => [s.id, s.state])]);
+    const key = JSON.stringify([snap.state, snap.sessions.map((s) => [s.id, s.state, s.project])]);
     if (!force && key === this.lastKey) return;
     const prev = this.lastState;
     this.lastKey = key;
