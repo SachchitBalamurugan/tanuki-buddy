@@ -29,7 +29,7 @@
     body.hover { cursor: grab; }
     body.hover:active { cursor: grabbing; }
     #bubble {
-      position: absolute; left: 6px; top: 6px; max-width: 74%;
+      position: absolute; left: 40px; top: 6px; max-width: 70%;
       padding: 6px 9px; border-radius: 12px;
       background: var(--paper); color: var(--ink);
       border: 2.5px solid var(--ink); box-shadow: 3px 3px 0 rgba(59, 42, 32, 0.25);
@@ -45,12 +45,50 @@
     .dot.working { background: var(--green); }
     .dot.approval { background: var(--yellow); }
     .dot.done { background: var(--red); }
-    @media (prefers-reduced-motion: reduce) { #bubble { transition: none; } }
+    body.tucked #bubble { top: 4px; bottom: auto; }
+
+    /* little washi buttons: resize grip + hide-under-the-log */
+    #ui {
+      position: absolute; left: 6px; top: 6px; display: flex; flex-direction: column; gap: 6px;
+      opacity: 0; transform: translateX(-3px); transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none;
+    }
+    body.ui #ui, body.resizing #ui { opacity: 1; transform: none; pointer-events: auto; }
+    body.tucked #ui { top: auto; bottom: 8px; flex-direction: column-reverse; }
+    #ui button {
+      width: 26px; height: 26px; padding: 0; border-radius: 50%; display: grid; place-items: center;
+      background: var(--paper); border: 2px solid var(--ink); box-shadow: 2px 2px 0 rgba(59, 42, 32, 0.25);
+      color: var(--ink); cursor: pointer; transition: transform 0.12s ease, background 0.12s ease;
+    }
+    #ui button:hover { background: #fffaf0; transform: translateY(-1px); }
+    #ui button:active { transform: translateY(1px); box-shadow: 1px 1px 0 rgba(59, 42, 32, 0.25); }
+    #ui svg { width: 16px; height: 16px; display: block; }
+    #grip, body.resizing, body.resizing * { cursor: nwse-resize !important; }
+    #tuck .out { display: none; }
+    body.tucked #tuck .in { display: none; }
+    body.tucked #tuck .out { display: block; }
+    @media (prefers-reduced-motion: reduce) { #bubble, #ui, #ui button { transition: none; } }
   </style>
 </head>
 <body>
   <canvas id="stage"></canvas>
   <div id="bubble"></div>
+  <div id="ui">
+    <button id="grip" title="Drag to resize (double-click to reset)" aria-label="Resize">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3l10 10M3 3h4.5M3 3v4.5M13 13H8.5M13 13V8.5"/>
+      </svg>
+    </button>
+    <button id="tuck" title="Hide under the log" aria-label="Hide under the log">
+      <svg class="in" viewBox="0 0 16 16" stroke="#3b2a20" stroke-width="1.4">
+        <rect x="2" y="7.5" width="11" height="5.5" rx="2.7" fill="#a77b4f"/>
+        <ellipse cx="12.4" cy="10.25" rx="2" ry="2.75" fill="#e3c597"/>
+        <path d="M5 7.5V2.2" stroke-linecap="round"/><path d="M5.3 2.4h5l-1.2 1.6 1.2 1.6h-5z" fill="#a9cf8f" stroke-linejoin="round"/>
+      </svg>
+      <svg class="out" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 13V3M3.8 7.2L8 3l4.2 4.2"/>
+      </svg>
+    </button>
+  </div>
   <script type="module" src="./main.js"></script>
 </body>
 </html>

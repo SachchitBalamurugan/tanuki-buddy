@@ -1,6 +1,6 @@
 {
   "name": "tanuki-buddy",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A cozy forest tanuki that shows when Claude Code / Codex need you",
   "main": "src/main/index.js",
   "scripts": {
@@ -56,7 +56,7 @@
       "oneClick": true,
       "perMachine": false,
       "runAfterFinish": true,
-      "createDesktopShortcut": false,
+      "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
       "shortcutName": "Tanuki Buddy",
       "artifactName": "Tanuki-Buddy-Setup-${version}.exe"

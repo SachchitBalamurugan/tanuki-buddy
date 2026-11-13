@@ -16,10 +16,14 @@
 If several sessions are open, the most urgent one wins (yellow > green > red), and the sign shows `+N`.
 Hover over the tanuki to see every session. Drag it anywhere, click it to poke it, and right-click for the menu.
 
+**Hide it under the log.** Hover the tanuki and press the little log button: it hops, dives under a mossy log tied with a shimenawa rope, and leaves a small flag waving in the status colour (it flaps hard when something needs you). Click the log, or open Tanuki Buddy from its desktop icon, to bring it back out.
+
+**Resize it.** Hover the tanuki and drag the ⤡ button: up/left to grow, down/right to shrink. Double-click it to reset.
+
 ## Download (Windows)
 
 1. Download **`Tanuki-Buddy-Setup-x.y.z.exe`** from the [latest release](https://github.com/SachchitBalamurugan/tanuki-buddy/releases/latest).
-2. Run it. It installs just for you (no admin needed) and starts right away.
+2. Run it. It installs just for you (no admin needed), adds a desktop icon, and starts right away.
    - The installer isn't code-signed, so Windows SmartScreen may warn you. Click **More info → Run anyway**.
 3. Right-click the tanuki, or the leaf icon in the tray, and choose **Connect Claude & Codex…**.
 
@@ -47,7 +51,7 @@ If the app isn't running, it does nothing.
 
 ## Tray menu
 
-Size (small / medium / large), reset position, wind-chime sound, Windows notifications, **Start with Windows**, connect/disconnect, test states, quit.
+Hide under the log, size (small / medium / large), reset position, wind-chime sound, Windows notifications, **Start with Windows**, connect/disconnect, test states, quit.
 
 ## Develop
 

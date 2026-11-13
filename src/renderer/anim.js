@@ -17,13 +17,14 @@ function textSprite(text, { bg = null, fg = "#3b2a20", size = 0.5, font = "900 1
   return s;
 }
 
-export function createAnimator(t, scene, { reduce = false } = {}) {
+// `stage` is the group that holds the tanuki (it sinks when hiding); `log` is the hideout from log.js.
+export function createAnimator(t, stage, { reduce = false, log = null } = {}) {
   gsap.defaults({ ease: "sine.inOut" });
   const bang = textSprite("!", { bg: "#f7d35e", size: 0.55 });
   bang.position.set(-0.55, 2.95, 0.4);
   const note = textSprite("♪", { fg: "#3f7a32", size: 0.42, font: "900 190px 'Segoe UI Symbol', sans-serif" });
   const zs = [0, 1, 2].map(() => textSprite("z", { fg: "#7c6a8f", size: 0.32, font: "italic 900 170px 'Segoe UI', sans-serif" }));
-  scene.add(bang, note, ...zs);
+  stage.add(bang, note, ...zs);
 
   let eyeMode = "open";
   function setEyes(mode) {
@@ -161,5 +162,45 @@ export function createAnimator(t, scene, { reduce = false } = {}) {
       .call(() => setEyes(was === "sleep" && current !== "sleep" ? "open" : current === "sleep" ? "sleep" : "open"), null, 0.9);
   }
 
-  return { setState, flipSign, poke, get state() { return current; } };
+  // hide under the log (or pop back out). Ground clipping in the shaders makes the tanuki vanish below y=0.
+  const HIDDEN_Y = -3.6, BACK_Z = -0.8; // dive down *behind* the log, not through it
+  let tuckTl = null;
+  function tuck(hide, instant = false) {
+    if (!log) return;
+    tuckTl?.kill();
+    gsap.killTweensOf([stage.position, stage.scale, log.root.position, log.mast.scale, log.body.rotation]);
+    if (instant || reduce) {
+      stage.visible = !hide; log.root.visible = hide;
+      stage.position.y = hide ? HIDDEN_Y : 0;
+      stage.position.z = hide ? BACK_Z : 0;
+      stage.scale.setScalar(hide ? 0.6 : 1);
+      log.root.position.y = hide ? 0 : -0.8;
+      log.mast.scale.setScalar(hide ? 1 : 0.001);
+      log.body.rotation.x = 0;
+      return;
+    }
+    const tiny = { x: 0.001, y: 0.001, z: 0.001 };
+    tuckTl = gsap.timeline();
+    if (hide) {
+      tuckTl.set(log.root, { visible: true }, 0)
+        .set(log.mast.scale, tiny, 0)
+        .fromTo(log.root.position, { y: -0.8 }, { y: 0, duration: 0.45, ease: "back.out(1.7)" }, 0)  // log pops up
+        .to(stage.position, { y: 0.25, z: BACK_Z, duration: 0.2, ease: "power2.out" }, 0.18)         // little hop back…
+        .to(stage.position, { y: HIDDEN_Y, duration: 0.45, ease: "power3.in" }, 0.38)                 // …and dive!
+        .to(stage.scale, { x: 0.6, y: 0.6, z: 0.6, duration: 0.45, ease: "power2.in" }, 0.38)
+        .to(log.body.rotation, { x: 0.06, duration: 0.07, yoyo: true, repeat: 3 }, 0.7)                // log jostles
+        .set(stage, { visible: false }, 0.85)
+        .to(log.mast.scale, { x: 1, y: 1, z: 1, duration: 0.8, ease: "elastic.out(1, 0.5)" }, 0.8);  // flag springs up
+    } else {
+      tuckTl.set(stage, { visible: true }, 0)
+        .to(log.mast.scale, { ...tiny, duration: 0.22, ease: "back.in(2)" }, 0)
+        .fromTo(stage.position, { y: HIDDEN_Y, z: BACK_Z }, { y: 0, duration: 0.6, ease: "back.out(1.3)" }, 0.15)
+        .to(stage.position, { z: 0, duration: 0.35, ease: "power2.inOut" }, 0.8)                      // step forward once the log is gone
+        .fromTo(stage.scale, { x: 0.6, y: 0.6, z: 0.6 }, { x: 1, y: 1, z: 1, duration: 0.6, ease: "back.out(1.3)" }, 0.15)
+        .to(log.root.position, { y: -0.8, duration: 0.35, ease: "power2.in" }, 0.45)
+        .set(log.root, { visible: false }, 0.8);
+    }
+  }
+
+  return { setState, flipSign, poke, tuck, get state() { return current; } };
 }

@@ -24,21 +24,24 @@ if (!SNAPSHOT && !app.requestSingleInstanceLock()) { app.quit(); process.exit(0)
 app.on("second-instance", () => {
   if (!win || win.isDestroyed()) return;
   win.showInactive(); win.setAlwaysOnTop(true, "screen-saver"); win.moveTop();
+  if (prefs.hidden) setTucked(false);
   refreshTray?.();
 });
 app.setAppUserModelId("com.tanuki.buddy");
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
 const statePath = () => path.join(app.getPath("userData"), "tanuki-state.json");
-let prefs = { muted: false, toasts: true, x: null, y: null, size: "small" };
+let prefs = { muted: false, toasts: true, x: null, y: null, size: "small", hidden: false };
 try { prefs = { ...prefs, ...JSON.parse(fs.readFileSync(statePath(), "utf8")) }; } catch {}
 const sizeArg = process.argv.find((a) => a.startsWith("--size="));
 if (sizeArg) prefs.size = sizeArg.split("=")[1];
-const savePrefs = () => { try { fs.writeFileSync(statePath(), JSON.stringify(prefs)); } catch {} };
+const savePrefs = () => { if (SNAPSHOT) return; try { fs.writeFileSync(statePath(), JSON.stringify(prefs)); } catch {} };
 
 let win, tray, store, lastSnap;
-let dragOrigin = null;
-const dims = () => { const f = SIZES[prefs.size] || Number(prefs.size) || SIZES.small; return { w: Math.round(BASE_W * f), h: Math.round(BASE_H * f) }; };
+let dragOrigin = null, resizeOrigin = null;
+const MIN_SCALE = 0.35, MAX_SCALE = 1.5;
+const scale = () => Math.min(MAX_SCALE, Math.max(MIN_SCALE, SIZES[prefs.size] || Number(prefs.size) || SIZES.small));
+const dims = () => { const f = scale(); return { w: Math.round(BASE_W * f), h: Math.round(BASE_H * f) }; };
 
 function defaultPos() {
   const { workArea } = screen.getPrimaryDisplay();
@@ -70,7 +73,17 @@ function createWindow() {
   win.once("ready-to-show", () => { win.showInactive(); pinOnTop(); });
   win.on("show", pinOnTop);
   setInterval(pinOnTop, 5000).unref?.();
-  win.webContents.on("did-finish-load", () => sendStatus(false));
+  win.webContents.on("did-finish-load", () => {
+    win.webContents.send("tuck", { value: !!prefs.hidden, instant: true });
+    sendStatus(false);
+  });
+}
+
+// Hide the tanuki under its log (the flag keeps showing the status), or bring it back out.
+function setTucked(v) {
+  prefs.hidden = !!v; savePrefs();
+  if (win && !win.isDestroyed()) win.webContents.send("tuck", { value: prefs.hidden, instant: false });
+  refreshTray();
 }
 
 function sendStatus(transition) {
@@ -89,7 +102,7 @@ function toast(snap) {
   const who = `${NAME[s.source]}${s.project ? " · " + s.project : ""}`;
   const body = snap.state === "approval" ? `${who} is waiting for your approval or answer.` : `${who} finished and is waiting for your next prompt.`;
   const n = new Notification({ title: snap.state === "approval" ? "🟡 確認 — needs you" : "🔴 完了 — all done", body, silent: true });
-  n.on("click", () => win?.showInactive());
+  n.on("click", () => { win?.showInactive(); if (prefs.hidden) setTucked(false); });
   n.show();
 }
 
@@ -100,10 +113,15 @@ function buildMenu() {
     { label: describe(lastSnap?.primary), enabled: false },
     ...(lastSnap?.sessions.length > 1 ? lastSnap.sessions.slice(0, 6).map((s) => ({ label: "   " + describe(s), enabled: false })) : []),
     { type: "separator" },
+    { label: prefs.hidden ? "Come out from the log" : "Hide under the log", click: () => setTucked(!prefs.hidden) },
     { label: win?.isVisible() ? "Hide tanuki" : "Show tanuki", click: () => { win.isVisible() ? win.hide() : win.showInactive(); refreshTray(); } },
     { label: "Reset position", click: () => { const p = defaultPos(); win.setPosition(p.x, p.y); prefs.x = p.x; prefs.y = p.y; savePrefs(); } },
-    { label: "Size", submenu: Object.keys(SIZES).map((k) => ({
-      label: k[0].toUpperCase() + k.slice(1), type: "radio", checked: prefs.size === k, click: () => setSize(k) })) },
+    { label: "Size", submenu: [
+      ...Object.keys(SIZES).map((k) => ({ label: k[0].toUpperCase() + k.slice(1), type: "radio", checked: prefs.size === k, click: () => setSize(k) })),
+      ...(SIZES[prefs.size] ? [] : [{ label: `Custom (${Math.round(scale() * 100)}%)`, type: "radio", checked: true, enabled: false }]),
+      { type: "separator" },
+      { label: "Tip: drag the ⤡ button on the tanuki to resize", enabled: false },
+    ] },
     { label: "Wind-chime sound", type: "checkbox", checked: !prefs.muted, click: (i) => { prefs.muted = !i.checked; savePrefs(); sendStatus(false); } },
     { label: "Windows notifications", type: "checkbox", checked: prefs.toasts, click: (i) => { prefs.toasts = i.checked; savePrefs(); } },
     { label: "Start with Windows", type: "checkbox", checked: login,
@@ -188,7 +206,7 @@ app.whenReady().then(() => {
     }
   }
 
-  ipcMain.on("hover", (_e, over) => { if (!dragOrigin) win.setIgnoreMouseEvents(!over, { forward: true }); });
+  ipcMain.on("hover", (_e, over) => { if (!dragOrigin && !resizeOrigin) win.setIgnoreMouseEvents(!over, { forward: true }); });
   ipcMain.on("drag-start", () => { const [x, y] = win.getPosition(); dragOrigin = { x, y }; });
   ipcMain.on("drag-move", (_e, dx, dy) => {
     if (dragOrigin) win.setBounds({ x: Math.round(dragOrigin.x + dx), y: Math.round(dragOrigin.y + dy), width: dims().w, height: dims().h });
@@ -199,6 +217,26 @@ app.whenReady().then(() => {
     savePrefs();
   });
   ipcMain.on("context-menu", () => buildMenu().popup({ window: win }));
+  ipcMain.on("tucked", (_e, v) => { prefs.hidden = !!v; savePrefs(); refreshTray(); });
+
+  // resize grip: dragging up/left grows, down/right shrinks; the bottom-right corner stays anchored
+  ipcMain.on("resize-start", () => {
+    const b = win.getBounds();
+    resizeOrigin = { right: b.x + b.width, bottom: b.y + b.height, f: scale() };
+  });
+  ipcMain.on("resize-move", (_e, dx, dy) => {
+    if (!resizeOrigin) return;
+    const f = Math.min(MAX_SCALE, Math.max(MIN_SCALE, resizeOrigin.f - (dx + dy) / 2 / BASE_W));
+    prefs.size = Math.round(f * 100) / 100;
+    const { w, h } = dims();
+    win.setBounds({ x: resizeOrigin.right - w, y: resizeOrigin.bottom - h, width: w, height: h });
+  });
+  ipcMain.on("resize-end", () => {
+    resizeOrigin = null;
+    [prefs.x, prefs.y] = win.getPosition();
+    savePrefs(); refreshTray();
+  });
+  ipcMain.on("resize-reset", () => { setSize("small"); refreshTray(); });
 
   // Dev aid: `electron . --icon=<file.png>` renders the app icon (face portrait) and quits.
   const iconArg = process.argv.find((a) => a.startsWith("--icon="));
@@ -229,6 +267,19 @@ app.whenReady().then(() => {
         await wait(delay);
         fs.writeFileSync(path.join(dir, `${state}.png`), (await win.webContents.capturePage()).toPNG());
       }
+      // the hideout: tanuki tucked under the log, flag in each colour
+      win.webContents.send("tuck", { value: true, instant: true });
+      for (const state of ["working", "approval", "done"]) {
+        store.update({ source: "claude", state, session_id: "snap", project: "my-app" });
+        await wait(900);
+        fs.writeFileSync(path.join(dir, `log-${state}.png`), (await win.webContents.capturePage()).toPNG());
+      }
+      // and mid-dive, to check the ground clipping
+      win.webContents.send("tuck", { value: false, instant: true });
+      await wait(300);
+      win.webContents.send("tuck", { value: true, instant: false });
+      await wait(650);
+      fs.writeFileSync(path.join(dir, "log-diving.png"), (await win.webContents.capturePage()).toPNG());
       app.exit(0);
     });
   }

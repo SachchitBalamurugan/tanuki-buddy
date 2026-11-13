@@ -32,6 +32,7 @@ const PAINT_FRAG = /* glsl */ `
   }
   float fbm(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * noise(p); p *= 2.03; a *= 0.5; } return s; }
   void main() {
+    if (vW.y < -0.05) discard;                            // the ground: things sink out of sight
     vec3 n = normalize(gl_FrontFacing ? vN : -vN);
     vec3 v = normalize(cameraPosition - vW);
     float l = dot(n, normalize(uLightDir)) * 0.5 + 0.5;
@@ -80,7 +81,7 @@ function outlineMat(thickness) {
 const sphere = (r) => new THREE.SphereGeometry(r, 40, 28);
 
 /** Adds a toon mesh (+ optional outline) to `parent`. */
-function part(parent, geo, mat, { pos = [0, 0, 0], scale = [1, 1, 1], rot = [0, 0, 0], outline = 0.02, name } = {}) {
+export function part(parent, geo, mat, { pos = [0, 0, 0], scale = [1, 1, 1], rot = [0, 0, 0], outline = 0.02, name } = {}) {
   const m = new THREE.Mesh(geo, typeof mat === "number" ? toon(mat) : mat);
   m.position.set(...pos);
   m.scale.set(...scale);
@@ -94,7 +95,7 @@ function part(parent, geo, mat, { pos = [0, 0, 0], scale = [1, 1, 1], rot = [0, 
   return m;
 }
 
-function leafGeometry(len = 0.5, wid = 0.2) {
+export function leafGeometry(len = 0.5, wid = 0.2) {
   const s = new THREE.Shape();
   s.moveTo(0, 0);
   s.bezierCurveTo(wid, len * 0.25, wid * 0.9, len * 0.75, 0, len);
